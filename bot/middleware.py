@@ -41,14 +41,14 @@ class WhitelistMiddleware(BaseMiddleware):
             # Отправляем сообщение об отказе в доступе
             if isinstance(event, Message):
                 await event.answer(
-                    "❌ Доступ запрещен.\n\n"
+                    "Доступ запрещен.\n\n"
                     "Обратитесь к администратору @Woolfer0097 чтобы он добавил вас в белый список.\n\n"
                     f"Ваш ID: `{user_id}`",
                     parse_mode="Markdown"
                 )
             elif isinstance(event, CallbackQuery):
                 await event.answer(
-                    f"❌ Доступ запрещен\n\nОбратитесь к @Woolfer0097\nВаш ID: {user_id}",
+                    f"Доступ запрещен\n\nОбратитесь к @Woolfer0097\nВаш ID: {user_id}",
                     show_alert=True
                 )
             

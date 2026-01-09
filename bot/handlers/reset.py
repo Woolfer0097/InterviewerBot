@@ -27,5 +27,5 @@ async def cmd_reset_progress(message: Message, session: AsyncSession):
     await session.flush()
     
     logger.info(f"User {tg_user_id} reset progress")
-    await message.answer("✅ Прогресс сброшен! Все вопросы снова доступны.")
+    await message.answer("Прогресс сброшен! Все вопросы снова доступны.")
 

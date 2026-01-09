@@ -23,7 +23,7 @@ async def send_daily(session: AsyncSession, bot: Bot, tg_user_id: int, config: C
     if not questions:
         await bot.send_message(
             tg_user_id,
-            "На сегодня все вопросы закончились! 🎉"
+            "На сегодня все вопросы закончились!"
         )
         return
     
@@ -40,7 +40,7 @@ async def send_daily(session: AsyncSession, bot: Bot, tg_user_id: int, config: C
     keyboard = get_answer_keyboard(first_question.id)
     await bot.send_message(
         tg_user_id,
-        f"❓ {first_question.question}\n\n📊 Частота: {first_question.freq_score}/9\n\n💬 Напиши ответ текстом:",
+        f"{first_question.question}\n\nЧастота: {first_question.freq_score}/9\n\nНапиши ответ текстом:",
         reply_markup=keyboard,
     )
 
@@ -73,7 +73,7 @@ async def send_next_question(session: AsyncSession, bot: Bot, tg_user_id: int) -
     keyboard = get_answer_keyboard(question.id)
     await bot.send_message(
         tg_user_id,
-        f"❓ {question.question}\n\n📊 Частота: {question.freq_score}/9\n\n💬 Напиши ответ текстом:",
+        f"{question.question}\n\nЧастота: {question.freq_score}/9\n\nНапиши ответ текстом:",
         reply_markup=keyboard,
     )
     

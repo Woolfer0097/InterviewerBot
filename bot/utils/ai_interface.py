@@ -2,7 +2,7 @@ import os
 import time
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
-import google.generativeai as genai
+import google.genai as genai
 
 
 class AIInterface:
@@ -22,8 +22,7 @@ class AIInterface:
         # Initialize Gemini
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         if self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.gemini_client = genai
+            self.gemini_client = genai.Client(api_key=self.gemini_api_key)
         else:
             self.gemini_client = None
             
@@ -37,7 +36,7 @@ class AIInterface:
             return None
             
         try:
-            model = self.gemini_client.GenerativeModel('gemini-2.5-flash-lite')
+            model = self.gemini_client.get_model('gemini-2.5-flash-lite')
             response = model.generate_content(prompt)
             return response.text
         except Exception as e:

@@ -17,10 +17,10 @@ async def cmd_stats(message: Message, session: AsyncSession):
     stats = await get_stats(session, user.id)
     
     text = (
-        f"📊 Статистика:\n\n"
-        f"✅ Отвечено: {stats['answered']}\n"
-        f"📤 Отправлено: {stats['sent']}\n"
-        f"📝 Осталось: {stats['remaining']}"
+        f"Статистика:\n\n"
+        f"Отвечено: {stats['answered']}\n"
+        f"Отправлено: {stats['sent']}\n"
+        f"Осталось: {stats['remaining']}"
     )
     
     await message.answer(text)

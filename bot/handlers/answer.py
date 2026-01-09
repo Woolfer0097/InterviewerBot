@@ -49,7 +49,7 @@ async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot
     question = result.scalar_one_or_none()
     
     if question is None:
-        await callback.answer("❌ Вопрос не найден", show_alert=True)
+        await callback.answer("Вопрос не найден", show_alert=True)
         return
     
     await callback.answer("Генерирую подсказку...")
@@ -60,19 +60,26 @@ async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot
         # Экранируем специальные символы Markdown в AI-генерированном тексте
         escaped_hint = escape_markdown(hint)
         await callback.message.answer(
-            f"💡 **Подсказка:**\n\n{escaped_hint}",
+            f"**Подсказка:**\n\n{escaped_hint}",
             parse_mode="Markdown"
         )
     except ValueError as e:
         # Нет API ключей
         logger.warning(f"AI API key not configured: {e}")
         await callback.message.answer(
-            "❌ Подсказки недоступны: не настроен API ключ.\n\n"
+            "Подсказки недоступны: не настроен API ключ.\n\n"
             "Добавьте GEMINI_API_KEY в .env файл."
         )
     except Exception as e:
         logger.error(f"Error generating hint for question {question_id}: {e}")
-        await callback.message.answer("❌ Не удалось сгенерировать подсказку. Попробуй позже.")
+        await callback.message.answer("Не удалось сгенерировать подсказку. Попробуй позже.")
+
+
+@router.callback_query(F.data.startswith("feedback_no:"))
+async def callback_feedback_no(callback: CallbackQuery, session: AsyncSession, bot: Bot):
+    """Обработчик нажатия на кнопку 'Нет' - пропускает получение фидбека."""
+    await callback.answer()
+    # Просто закрываем сообщение, ничего не делаем
 
 
 @router.callback_query(F.data.startswith("feedback:"))
@@ -89,7 +96,7 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
     question = question_result.scalar_one_or_none()
     
     if question is None:
-        await callback.answer("❌ Вопрос не найден", show_alert=True)
+        await callback.answer("Вопрос не найден", show_alert=True)
         return
     
     # Получаем ответ пользователя
@@ -101,7 +108,7 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
     user_question = answer_result.scalar_one_or_none()
     
     if user_question is None or not user_question.answer_text:
-        await callback.answer("❌ Ответ не найден", show_alert=True)
+        await callback.answer("Ответ не найден", show_alert=True)
         return
     
     await callback.answer("Генерирую фидбек...")
@@ -118,7 +125,7 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
         # Экранируем специальные символы Markdown в AI-генерированном тексте
         escaped_feedback = escape_markdown(feedback)
         await callback.message.answer(
-            f"📝 **Фидбек на твой ответ:**\n\n{escaped_feedback}",
+            f"**Фидбек на твой ответ:**\n\n{escaped_feedback}",
             parse_mode="Markdown",
             reply_markup=keyboard
         )
@@ -126,12 +133,12 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
         # Нет API ключей
         logger.warning(f"AI API key not configured: {e}")
         await callback.message.answer(
-            "❌ Фидбек недоступен: не настроен API ключ.\n\n"
+            "Фидбек недоступен: не настроен API ключ.\n\n"
             "Добавьте GEMINI_API_KEY в .env файл."
         )
     except Exception as e:
         logger.error(f"Error generating feedback for question {question_id}: {e}")
-        await callback.message.answer("❌ Не удалось сгенерировать фидбек. Попробуй позже.")
+        await callback.message.answer("Не удалось сгенерировать фидбек. Попробуй позже.")
 
 
 @router.callback_query(F.data.startswith("edit:"))
@@ -155,13 +162,13 @@ async def callback_keep_answer(callback: CallbackQuery, session: AsyncSession, b
     question_id = int(callback.data.split(":")[1])
     tg_user_id = callback.from_user.id
     
-    await callback.answer("Ответ оставлен без изменений ✅")
-    await callback.message.answer("✅ Ответ сохранен. Продолжаем!")
+    await callback.answer("Ответ оставлен без изменений")
+    await callback.message.answer("Ответ сохранен. Продолжаем!")
 
 
 @router.callback_query(F.data.startswith("menu:"))
 async def callback_menu(callback: CallbackQuery, session: AsyncSession, bot: Bot):
-    """Обработчик нажатия на кнопку 'Меню' - отменяет текущее отвечание на вопрос."""
+    """Обработчик нажатия на кнопку 'Меню' - отменяет текущее Ответ на вопрос."""
     question_id = int(callback.data.split(":")[1])
     tg_user_id = callback.from_user.id
     
@@ -170,9 +177,9 @@ async def callback_menu(callback: CallbackQuery, session: AsyncSession, bot: Bot
     # Сбрасываем ожидание ответа
     await set_awaiting(session, user.id, None)
     
-    await callback.answer("Отвечание отменено")
+    await callback.answer("Ответ отменен")
     await callback.message.answer(
-        "✅ Отвечание на вопрос отменено.\n\n"
+        "Ответ на вопрос отменен.\n\n"
         "Используй команды:\n"
         "• /today - получить вопросы\n"
         "• /stats - статистика\n"
@@ -207,13 +214,12 @@ async def handle_text_answer(message: Message, session: AsyncSession, bot: Bot):
             pending.remove(awaiting_question_id)
             await set_pending_questions(session, user.id, pending)
         
-        await message.answer("Сохранено ✅")
         logger.info(f"User {tg_user_id} answered question {awaiting_question_id}")
         
-        # Предлагаем получить фидбек
+        # Предлагаем получить фидбек одним сообщением
         keyboard = get_feedback_keyboard(awaiting_question_id)
         await message.answer(
-            "Хочешь получить фидбек от ИИ на твой ответ?",
+            "Ответ сохранен. Хочешь получить фидбек на свой ответ?",
             reply_markup=keyboard
         )
         
@@ -221,9 +227,9 @@ async def handle_text_answer(message: Message, session: AsyncSession, bot: Bot):
         has_next = await send_next_question(session, bot, tg_user_id)
         
         if not has_next:
-            await message.answer("✅ Все вопросы завершены!")
+            await message.answer("Все вопросы завершены!")
             
     except Exception as e:
         logger.error(f"Error saving answer for user {tg_user_id}: {e}")
-        await message.answer("❌ Произошла ошибка при сохранении ответа.")
+        await message.answer("Произошла ошибка при сохранении ответа.")
         await session.rollback()

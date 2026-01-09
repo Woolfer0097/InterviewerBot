@@ -20,5 +20,5 @@ async def cmd_today(message: Message, session: AsyncSession, bot: Bot, config: C
         logger.info(f"Sent daily questions to user {tg_user_id}")
     except Exception as e:
         logger.error(f"Error sending daily questions to {tg_user_id}: {e}")
-        await message.answer("❌ Произошла ошибка при получении вопросов.")
+        await message.answer("Произошла ошибка при получении вопросов.")
 
