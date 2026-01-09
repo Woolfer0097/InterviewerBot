@@ -20,6 +20,23 @@ from bot.logging import logger
 router = Router()
 
 
+def escape_markdown(text: str) -> str:
+    """
+    Экранирует специальные символы Markdown для безопасной вставки в сообщения Telegram.
+    
+    Args:
+        text: Текст для экранирования
+        
+    Returns:
+        Экранированный текст
+    """
+    # Специальные символы Markdown (не MarkdownV2)
+    special_chars = ['*', '_', '`', '[', ']']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
+
+
 @router.callback_query(F.data.startswith("hint:"))
 async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot):
     """Обработчик нажатия на кнопку 'Подсказка' - генерирует подсказку через ИИ."""
@@ -40,8 +57,10 @@ async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot
     # Генерируем подсказку
     try:
         hint = await generate_hint(question.question, question.freq_score)
+        # Экранируем специальные символы Markdown в AI-генерированном тексте
+        escaped_hint = escape_markdown(hint)
         await callback.message.answer(
-            f"💡 **Подсказка:**\n\n{hint}",
+            f"💡 **Подсказка:**\n\n{escaped_hint}",
             parse_mode="Markdown"
         )
     except ValueError as e:
@@ -96,8 +115,10 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
         )
         
         keyboard = get_edit_answer_keyboard(question_id)
+        # Экранируем специальные символы Markdown в AI-генерированном тексте
+        escaped_feedback = escape_markdown(feedback)
         await callback.message.answer(
-            f"📝 **Фидбек на твой ответ:**\n\n{feedback}",
+            f"📝 **Фидбек на твой ответ:**\n\n{escaped_feedback}",
             parse_mode="Markdown",
             reply_markup=keyboard
         )
