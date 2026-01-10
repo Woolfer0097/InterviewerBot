@@ -106,6 +106,25 @@ docker compose down
 docker volume rm interviewbot_postgres_data
 docker compose up -d
 docker compose exec bot alembic upgrade head
+./scripts/restore_database.sh  # Восстановит вопросы из data.csv
+```
+
+### Восстановление базы данных после миграций
+
+После применения миграций база данных будет пустой (только структура таблиц). Для восстановления данных:
+
+**Быстрое восстановление** (рекомендуется):
+```bash
+./scripts/restore_database.sh
+```
+
+**Ручное восстановление**:
+```bash
+# Применить миграции
+docker compose exec bot alembic upgrade head
+
+# Импортировать вопросы
+docker compose exec bot python scripts/import_questions.py /app/data.csv
 ```
 
 **Важно**: Всегда используйте одинаковые credentials в `docker-compose.yml` и `.env` файле!
