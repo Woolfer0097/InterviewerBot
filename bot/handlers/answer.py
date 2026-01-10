@@ -78,8 +78,16 @@ async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot
 @router.callback_query(F.data.startswith("feedback_no:"))
 async def callback_feedback_no(callback: CallbackQuery, session: AsyncSession, bot: Bot):
     """Обработчик нажатия на кнопку 'Нет' - пропускает получение фидбека."""
+    question_id = int(callback.data.split(":")[1])
+    tg_user_id = callback.from_user.id
+    
     await callback.answer()
-    # Просто закрываем сообщение, ничего не делаем
+    
+    # Отправляем следующий вопрос
+    has_next = await send_next_question(session, bot, tg_user_id)
+    
+    if not has_next:
+        await callback.message.answer("Все вопросы завершены!")
 
 
 @router.callback_query(F.data.startswith("feedback:"))
@@ -129,6 +137,12 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
             parse_mode="Markdown",
             reply_markup=keyboard
         )
+        
+        # Отправляем следующий вопрос после фидбека
+        has_next = await send_next_question(session, bot, tg_user_id)
+        
+        if not has_next:
+            await callback.message.answer("Все вопросы завершены!")
     except ValueError as e:
         # Нет API ключей
         logger.warning(f"AI API key not configured: {e}")
@@ -136,9 +150,21 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
             "Фидбек недоступен: не настроен API ключ.\n\n"
             "Добавьте GEMINI_API_KEY в .env файл."
         )
+        
+        # Отправляем следующий вопрос даже если фидбек недоступен
+        has_next = await send_next_question(session, bot, tg_user_id)
+        
+        if not has_next:
+            await callback.message.answer("Все вопросы завершены!")
     except Exception as e:
         logger.error(f"Error generating feedback for question {question_id}: {e}")
         await callback.message.answer("Не удалось сгенерировать фидбек. Попробуй позже.")
+        
+        # Отправляем следующий вопрос даже если произошла ошибка
+        has_next = await send_next_question(session, bot, tg_user_id)
+        
+        if not has_next:
+            await callback.message.answer("Все вопросы завершены!")
 
 
 @router.callback_query(F.data.startswith("edit:"))
@@ -222,12 +248,6 @@ async def handle_text_answer(message: Message, session: AsyncSession, bot: Bot):
             "Ответ сохранен. Хочешь получить фидбек на свой ответ?",
             reply_markup=keyboard
         )
-        
-        # Отправляем следующий вопрос
-        has_next = await send_next_question(session, bot, tg_user_id)
-        
-        if not has_next:
-            await message.answer("Все вопросы завершены!")
             
     except Exception as e:
         logger.error(f"Error saving answer for user {tg_user_id}: {e}")
