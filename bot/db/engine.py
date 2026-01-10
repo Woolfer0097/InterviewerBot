@@ -9,6 +9,10 @@ def create_engine(config: Config):
         config.database_url,
         echo=False,
         future=True,
+        pool_pre_ping=True,  # Проверяет соединения перед использованием
+        pool_recycle=3600,   # Переподключается каждые 3600 секунд
+        pool_size=10,        # Размер пула соединений
+        max_overflow=20,     # Максимальное количество дополнительных соединений
     )
 
 
