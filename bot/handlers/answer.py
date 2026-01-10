@@ -30,14 +30,15 @@ def escape_markdown_v2(text: str) -> str:
     Returns:
         Экранированный текст
     """
-    # Специальные символы MarkdownV2, которые нужно экранировать
-    # Исключаем | и \ так как они обрабатываются отдельно для spoiler
-    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '{', '}', '.', '!']
+    # ВАЖНО: Сначала экранируем обратный слэш, чтобы не экранировать уже экранированные символы
+    text = text.replace('\\', '\\\\')
+    
+    # Затем экранируем остальные специальные символы MarkdownV2
+    # Список всех зарезервированных символов в MarkdownV2
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '{', '}', '.', '!', '|']
     for char in special_chars:
         text = text.replace(char, f'\\{char}')
-    # Экранируем обратный слэш и вертикальную черту
-    text = text.replace('\\', '\\\\')
-    text = text.replace('|', '\\|')
+    
     return text
 
 
@@ -60,7 +61,9 @@ def format_hint_with_spoiler(hint_text: str) -> str:
     
     def escape_spoiler_content(text: str) -> str:
         """Экранирует только | и \ внутри spoiler для MarkdownV2"""
+        # ВАЖНО: Сначала экранируем обратный слэш
         text = text.replace('\\', '\\\\')
+        # Затем экранируем вертикальную черту
         text = text.replace('|', '\\|')
         return text
     
