@@ -3,6 +3,7 @@ from aiogram.types import Message
 from aiogram.filters import Command
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.db.dao import get_or_create_user, get_stats
+from bot.keyboards.inline import get_export_keyboard
 from bot.logging import logger
 
 router = Router()
@@ -23,5 +24,10 @@ async def cmd_stats(message: Message, session: AsyncSession):
         f"Осталось: {stats['remaining']}"
     )
     
-    await message.answer(text)
+    # Добавляем кнопки экспорта, если есть отвеченные вопросы
+    keyboard = None
+    if stats['answered'] > 0:
+        keyboard = get_export_keyboard()
+    
+    await message.answer(text, reply_markup=keyboard)
 

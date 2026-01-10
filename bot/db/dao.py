@@ -242,3 +242,65 @@ async def pop_next_question(session: AsyncSession, user_id: int) -> Optional[int
     await session.flush()
     return question_id
 
+
+async def save_feedback(
+    session: AsyncSession,
+    user_id: int,
+    question_id: int,
+    feedback_text: str,
+) -> None:
+    """Сохраняет фидбек ИИ на ответ пользователя."""
+    stmt = select(UserQuestion).where(
+        and_(UserQuestion.user_id == user_id, UserQuestion.question_id == question_id)
+    )
+    result = await session.execute(stmt)
+    uq = result.scalar_one_or_none()
+    
+    if uq is not None:
+        uq.feedback_text = feedback_text
+        await session.flush()
+
+
+async def save_hint(
+    session: AsyncSession,
+    user_id: int,
+    question_id: int,
+    hint_text: str,
+) -> None:
+    """Сохраняет подсказку ИИ для вопроса."""
+    stmt = select(UserQuestion).where(
+        and_(UserQuestion.user_id == user_id, UserQuestion.question_id == question_id)
+    )
+    result = await session.execute(stmt)
+    uq = result.scalar_one_or_none()
+    
+    if uq is None:
+        # Создаем запись если её нет
+        uq = UserQuestion(
+            user_id=user_id,
+            question_id=question_id,
+            status="sent",
+            hint_text=hint_text,
+        )
+        session.add(uq)
+    else:
+        uq.hint_text = hint_text
+    
+    await session.flush()
+
+
+async def get_user_questions_with_answers(
+    session: AsyncSession,
+    user_id: int,
+) -> list[UserQuestion]:
+    """Получает все вопросы пользователя с ответами и AI данными."""
+    stmt = (
+        select(UserQuestion)
+        .where(UserQuestion.user_id == user_id)
+        .where(UserQuestion.status == "answered")
+        .options(selectinload(UserQuestion.question))
+        .order_by(UserQuestion.answered_at.desc())
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+

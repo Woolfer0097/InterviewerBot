@@ -10,6 +10,8 @@ from bot.db.dao import (
     save_answer,
     get_pending_questions,
     set_pending_questions,
+    save_feedback,
+    save_hint,
 )
 from bot.db.models import Question, UserQuestion
 from bot.services.delivery import send_next_question
@@ -124,7 +126,12 @@ async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot
     
     # Генерируем подсказку
     try:
+        user = await get_or_create_user(session, tg_user_id)
         hint = await generate_hint(question.question, question.freq_score)
+        
+        # Сохраняем подсказку в БД
+        await save_hint(session, user.id, question_id, hint)
+        
         # Форматируем подсказку с правильным spoiler для MarkdownV2
         formatted_hint = format_hint_with_spoiler(hint)
         # Экранируем заголовок отдельно
@@ -199,6 +206,9 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
             user_question.answer_text,
             question.freq_score
         )
+        
+        # Сохраняем фидбек в БД
+        await save_feedback(session, user.id, question_id, feedback)
         
         keyboard = get_edit_answer_keyboard(question_id)
         # Экранируем специальные символы MarkdownV2 в AI-генерированном тексте

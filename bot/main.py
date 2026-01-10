@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from bot.config import Config
 from bot.db.engine import create_engine, create_sessionmaker
-from bot.handlers import start, today, stats, answer, reset
+from bot.handlers import start, today, stats, answer, reset, export
 from bot.scheduler import setup_scheduler
 from bot.middleware import DatabaseMiddleware, WhitelistMiddleware
 from bot.logging import logger
@@ -47,6 +47,7 @@ async def main():
     dp.include_router(stats.router)
     dp.include_router(answer.router)
     dp.include_router(reset.router)
+    dp.include_router(export.router)
     
     # Настраиваем scheduler
     scheduler = setup_scheduler(sessionmaker, bot, config)

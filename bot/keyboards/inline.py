@@ -33,3 +33,14 @@ def get_edit_answer_keyboard(question_id: int) -> InlineKeyboardMarkup:
     ])
     return keyboard
 
+
+def get_export_keyboard() -> InlineKeyboardMarkup:
+    """Создает inline клавиатуру с кнопками экспорта."""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📄 Экспорт Markdown", callback_data="export:md"),
+            InlineKeyboardButton(text="📊 Экспорт CSV", callback_data="export:csv")
+        ]
+    ])
+    return keyboard
+

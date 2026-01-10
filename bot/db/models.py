@@ -43,6 +43,8 @@ class UserQuestion(Base):
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     answer_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    feedback_text: Mapped[str | None] = mapped_column(Text, nullable=True)  # AI feedback на ответ
+    hint_text: Mapped[str | None] = mapped_column(Text, nullable=True)  # AI подсказка
 
     user: Mapped["User"] = relationship(back_populates="user_questions")
     question: Mapped["Question"] = relationship(back_populates="user_questions")
