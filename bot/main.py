@@ -3,7 +3,7 @@ import sys
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from bot.config import Config
-from bot.db.engine import create_engine, create_sessionmaker
+from bot.db.engine import create_engine, create_sessionmaker, init_db
 from bot.handlers import start, today, stats, answer, reset, export
 from bot.scheduler import setup_scheduler
 from bot.middleware import DatabaseMiddleware, WhitelistMiddleware
@@ -77,6 +77,14 @@ async def main():
     
     # Ждем готовности БД
     await wait_for_db(engine)
+    
+    # Создаем таблицы если их нет
+    logger.info("Creating database tables if not exist...")
+    try:
+        await init_db(engine)
+        logger.info("Database tables created/verified")
+    except Exception as e:
+        logger.warning(f"Error creating tables (they may already exist): {e}")
     
     sessionmaker = create_sessionmaker(engine)
     

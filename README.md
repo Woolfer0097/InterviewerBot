@@ -7,7 +7,6 @@ Telegram-бот для подготовки к собеседованиям с �
 - Python 3.12
 - aiogram 3
 - async SQLAlchemy + asyncpg
-- Alembic
 - APScheduler
 - PostgreSQL
 - Docker Compose
@@ -47,21 +46,9 @@ WHITELIST_TG_IDS=123456789,987654321
 docker compose up --build
 ```
 
-### 3. Миграции БД
+### 3. Импорт вопросов
 
-Сначала создайте init миграцию (если еще не создана):
-
-```bash
-docker compose exec bot alembic revision --autogenerate -m "init"
-```
-
-Затем примените миграции:
-
-```bash
-docker compose exec bot alembic upgrade head
-```
-
-### 4. Импорт вопросов
+Таблицы создаются автоматически при запуске бота. Просто импортируйте вопросы:
 
 ```bash
 docker compose exec bot python scripts/import_questions.py /app/data.csv
@@ -105,13 +92,12 @@ ALTER USER postgres WITH PASSWORD 'postgres';
 docker compose down
 docker volume rm interviewbot_postgres_data
 docker compose up -d
-docker compose exec bot alembic upgrade head
 ./scripts/restore_database.sh  # Восстановит вопросы из data.csv
 ```
 
-### Восстановление базы данных после миграций
+### Восстановление базы данных
 
-После применения миграций база данных будет пустой (только структура таблиц). Для восстановления данных:
+Таблицы создаются автоматически при запуске бота. Для восстановления данных:
 
 **Быстрое восстановление** (рекомендуется):
 ```bash
@@ -120,9 +106,6 @@ docker compose exec bot alembic upgrade head
 
 **Ручное восстановление**:
 ```bash
-# Применить миграции
-docker compose exec bot alembic upgrade head
-
 # Импортировать вопросы
 docker compose exec bot python scripts/import_questions.py /app/data.csv
 ```
@@ -146,7 +129,6 @@ bot/
   keyboards/   # Inline клавиатуры
   utils/       # Утилиты
 scripts/       # Скрипты импорта
-migrations/    # Alembic миграции
 ```
 
 ## Проверка работы
