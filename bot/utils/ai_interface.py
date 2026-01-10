@@ -4,7 +4,7 @@ import time
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 from dotenv import load_dotenv
-import google.genai as genai
+from google import genai
 
 
 class AIInterface:
@@ -27,14 +27,17 @@ class AIInterface:
         if not self.gemini_api_key:
             raise ValueError("GEMINI_API_KEY not found. Please set GEMINI_API_KEY environment variable.")
         
-        # Initialize Gemini client
-        self.gemini_client = genai.Client(api_key=self.gemini_api_key)
+        # Set API key as environment variable for genai.Client()
+        os.environ["GOOGLE_API_KEY"] = self.gemini_api_key
+        
+        # Initialize Gemini client (API key is read from GOOGLE_API_KEY env var)
+        self.gemini_client = genai.Client()
         
         # Load available models from JSON file
         self.models = self._load_models(models_file)
         if not self.models:
             # Fallback to default model if no models file found
-            self.models = ['gemini-2.0-flash-exp']
+            self.models = ['gemini-2.5-flash-lite']
         
         self.current_model_index = 0
         self.model_name = self.models[self.current_model_index]
@@ -98,10 +101,12 @@ class AIInterface:
     def _try_gemini(self, prompt: str, switch_on_rate_limit: bool = True) -> Optional[str]:
         """Try to generate text using Gemini API"""
         try:
-            # Используем GenerativeModel для генерации контента
-            model = genai.GenerativeModel(self.model_name, client=self.gemini_client)
-            response = model.generate_content(prompt)
-            return response.text
+            # Используем правильный API для генерации контента
+            interaction = self.gemini_client.interactions.create(
+                model=self.model_name,
+                input=prompt
+            )
+            return interaction.outputs[-1].text
         except Exception as e:
             error_msg = str(e)
             print(f"Gemini API error with model {self.model_name}: {error_msg}")
@@ -112,9 +117,11 @@ class AIInterface:
                     # Retry with new model
                     print(f"Retrying with model: {self.model_name}")
                     try:
-                        model = genai.GenerativeModel(self.model_name, client=self.gemini_client)
-                        response = model.generate_content(prompt)
-                        return response.text
+                        interaction = self.gemini_client.interactions.create(
+                            model=self.model_name,
+                            input=prompt
+                        )
+                        return interaction.outputs[-1].text
                     except Exception as retry_error:
                         print(f"Retry with {self.model_name} also failed: {retry_error}")
             
