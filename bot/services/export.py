@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List
-from io import BytesIO
+from io import StringIO
 import csv
 from bot.db.models import UserQuestion
 
@@ -80,9 +80,9 @@ def export_to_csv(user_questions: List[UserQuestion]) -> str:
         user_questions: Список UserQuestion с загруженными вопросами
         
     Returns:
-        CSV строка
+        CSV строка (с BOM для Excel)
     """
-    output = BytesIO()
+    output = StringIO()
     writer = csv.writer(output, quoting=csv.QUOTE_ALL)
     
     # Заголовки
@@ -109,6 +109,9 @@ def export_to_csv(user_questions: List[UserQuestion]) -> str:
             uq.answered_at.strftime('%Y-%m-%d %H:%M:%S') if uq.answered_at else "",
         ])
     
-    output.seek(0)
-    return output.getvalue().decode('utf-8-sig')  # UTF-8 with BOM for Excel compatibility
+    csv_string = output.getvalue()
+    output.close()
+    
+    # Добавляем BOM для правильного отображения в Excel
+    return '\ufeff' + csv_string
 
