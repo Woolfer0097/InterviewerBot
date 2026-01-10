@@ -60,11 +60,15 @@ def format_hint_with_spoiler(hint_text: str) -> str:
     pattern = r'\|\|\s*(.*?)\s*\|\|'
     
     def escape_spoiler_content(text: str) -> str:
-        """Экранирует только | и \ внутри spoiler для MarkdownV2"""
+        """Экранирует все специальные символы MarkdownV2 внутри spoiler"""
+        # Внутри spoiler нужно экранировать ВСЕ специальные символы MarkdownV2, включая точку
         # ВАЖНО: Сначала экранируем обратный слэш
         text = text.replace('\\', '\\\\')
-        # Затем экранируем вертикальную черту
-        text = text.replace('|', '\\|')
+        # Затем экранируем все остальные специальные символы MarkdownV2
+        # Включая точку, которая является зарезервированным символом
+        special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '{', '}', '.', '!', '|']
+        for char in special_chars:
+            text = text.replace(char, f'\\{char}')
         return text
     
     # Находим все spoiler блоки
@@ -123,8 +127,11 @@ async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot
         hint = await generate_hint(question.question, question.freq_score)
         # Форматируем подсказку с правильным spoiler для MarkdownV2
         formatted_hint = format_hint_with_spoiler(hint)
+        # Экранируем заголовок отдельно
+        header = escape_markdown_v2("Подсказка:")
+        message_text = f"*{header}*\n\n{formatted_hint}"
         await callback.message.answer(
-            f"*Подсказка:*\n\n{formatted_hint}",
+            message_text,
             parse_mode="MarkdownV2"
         )
     except ValueError as e:
@@ -196,8 +203,11 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
         keyboard = get_edit_answer_keyboard(question_id)
         # Экранируем специальные символы MarkdownV2 в AI-генерированном тексте
         escaped_feedback = escape_markdown_v2(feedback)
+        # Экранируем заголовок отдельно
+        header = escape_markdown_v2("Фидбек на твой ответ:")
+        message_text = f"*{header}*\n\n{escaped_feedback}"
         await callback.message.answer(
-            f"*Фидбек на твой ответ:*\n\n{escaped_feedback}",
+            message_text,
             parse_mode="MarkdownV2",
             reply_markup=keyboard
         )
