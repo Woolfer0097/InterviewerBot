@@ -20,9 +20,9 @@ from bot.logging import logger
 router = Router()
 
 
-def escape_markdown(text: str) -> str:
+def escape_markdown_v2(text: str) -> str:
     """
-    Экранирует специальные символы Markdown для безопасной вставки в сообщения Telegram.
+    Экранирует специальные символы MarkdownV2 для безопасной вставки в сообщения Telegram.
     
     Args:
         text: Текст для экранирования
@@ -30,11 +30,72 @@ def escape_markdown(text: str) -> str:
     Returns:
         Экранированный текст
     """
-    # Специальные символы Markdown (не MarkdownV2)
-    special_chars = ['*', '_', '`', '[', ']']
+    # Специальные символы MarkdownV2, которые нужно экранировать
+    # Исключаем | и \ так как они обрабатываются отдельно для spoiler
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '{', '}', '.', '!']
     for char in special_chars:
         text = text.replace(char, f'\\{char}')
+    # Экранируем обратный слэш и вертикальную черту
+    text = text.replace('\\', '\\\\')
+    text = text.replace('|', '\\|')
     return text
+
+
+def format_hint_with_spoiler(hint_text: str) -> str:
+    """
+    Форматирует подсказку с правильным spoiler для MarkdownV2.
+    Ищет эталонный ответ между || || или ||текст|| и правильно форматирует его.
+    
+    Args:
+        hint_text: Текст подсказки от ИИ
+        
+    Returns:
+        Отформатированный текст с правильным spoiler
+    """
+    import re
+    
+    # Ищем паттерн || текст || или ||текст|| (с возможными пробелами)
+    # Используем нежадный поиск, чтобы найти первый spoiler
+    pattern = r'\|\|\s*(.*?)\s*\|\|'
+    
+    def escape_spoiler_content(text: str) -> str:
+        """Экранирует только | и \ внутри spoiler для MarkdownV2"""
+        text = text.replace('\\', '\\\\')
+        text = text.replace('|', '\\|')
+        return text
+    
+    # Находим все spoiler блоки
+    parts = []
+    last_end = 0
+    
+    for match in re.finditer(pattern, hint_text, flags=re.DOTALL):
+        # Добавляем текст до spoiler (подсказка)
+        if match.start() > last_end:
+            hint_part = hint_text[last_end:match.start()].strip()
+            if hint_part:
+                # Экранируем подсказку для MarkdownV2
+                escaped_hint = escape_markdown_v2(hint_part)
+                parts.append(escaped_hint)
+        
+        # Обрабатываем spoiler (эталонный ответ)
+        spoiler_text = match.group(1)
+        escaped_spoiler = escape_spoiler_content(spoiler_text)
+        parts.append(f'||{escaped_spoiler}||')
+        
+        last_end = match.end()
+    
+    # Добавляем оставшийся текст после последнего spoiler
+    if last_end < len(hint_text):
+        remaining = hint_text[last_end:].strip()
+        if remaining:
+            escaped_remaining = escape_markdown_v2(remaining)
+            parts.append(escaped_remaining)
+    
+    # Если spoiler не найден, просто экранируем весь текст
+    if not parts:
+        return escape_markdown_v2(hint_text)
+    
+    return '\n\n'.join(parts)
 
 
 @router.callback_query(F.data.startswith("hint:"))
@@ -57,11 +118,11 @@ async def callback_hint(callback: CallbackQuery, session: AsyncSession, bot: Bot
     # Генерируем подсказку
     try:
         hint = await generate_hint(question.question, question.freq_score)
-        # Экранируем специальные символы Markdown в AI-генерированном тексте
-        escaped_hint = escape_markdown(hint)
+        # Форматируем подсказку с правильным spoiler для MarkdownV2
+        formatted_hint = format_hint_with_spoiler(hint)
         await callback.message.answer(
-            f"**Подсказка:**\n\n{escaped_hint}",
-            parse_mode="Markdown"
+            f"*Подсказка:*\n\n{formatted_hint}",
+            parse_mode="MarkdownV2"
         )
     except ValueError as e:
         # Нет API ключей
@@ -130,11 +191,11 @@ async def callback_feedback(callback: CallbackQuery, session: AsyncSession, bot:
         )
         
         keyboard = get_edit_answer_keyboard(question_id)
-        # Экранируем специальные символы Markdown в AI-генерированном тексте
-        escaped_feedback = escape_markdown(feedback)
+        # Экранируем специальные символы MarkdownV2 в AI-генерированном тексте
+        escaped_feedback = escape_markdown_v2(feedback)
         await callback.message.answer(
-            f"**Фидбек на твой ответ:**\n\n{escaped_feedback}",
-            parse_mode="Markdown",
+            f"*Фидбек на твой ответ:*\n\n{escaped_feedback}",
+            parse_mode="MarkdownV2",
             reply_markup=keyboard
         )
         
